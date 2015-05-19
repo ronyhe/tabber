@@ -41,12 +41,11 @@ public class Tabber extends InputAdapter{
     private static final int CYCLE_KEY_CODE = Input.Keys.TAB;
     private static final int CLICK_KEY_CODE = Input.Keys.ENTER;
 
-    private final Iterable<? extends Actor> actorsToCycleThrough;
     private final Highlighter highlighter;
 
     // Eliminate the need for null checks by initializing the currentActor to a special case object
     private Actor currentActor = new InitialDummyActor();
-    private Iterator<? extends Actor> actorsIterator;
+    private CircularIterator<Actor> actors;
 
     // Simple events for simulating a click on an actor
     // Defined as fields to avoid creating unneeded instances
@@ -55,8 +54,7 @@ public class Tabber extends InputAdapter{
 
 
     public Tabber(Iterable<? extends Actor> actorsToCycleThrough, Highlighter highlighter) {
-        this.actorsToCycleThrough = actorsToCycleThrough;
-        this.actorsIterator = actorsToCycleThrough.iterator();
+        this.actors = new CircularIterator<>(actorsToCycleThrough);
         this.highlighter = highlighter;
     }
 
@@ -83,14 +81,7 @@ public class Tabber extends InputAdapter{
     }
 
     private Actor getNextActor() {
-        if (currentActorIsTheLastActor()) {
-            resetActorsIterator();
-        }
-        return actorsIterator.next();
-    }
-
-    private boolean currentActorIsTheLastActor() {
-        return !actorsIterator.hasNext();
+        return actors.next();
     }
 
     private boolean clickKeyWasClicked(int keycode) {
@@ -99,10 +90,6 @@ public class Tabber extends InputAdapter{
 
     private boolean cycleKeyWasClicked(int keycode) {
         return keycode == CYCLE_KEY_CODE;
-    }
-
-    private void resetActorsIterator() {
-        actorsIterator = actorsToCycleThrough.iterator();
     }
 
     private static class TouchDownEvent extends InputEvent {
@@ -132,5 +119,22 @@ public class Tabber extends InputAdapter{
         }
     }
 
+    private static class CircularIterator<T> {
+
+        private Iterable<? extends T> iterable;
+        private Iterator<? extends T> iterator;
+
+        private CircularIterator(Iterable<? extends T> iterable) {
+            this.iterable = iterable;
+            this.iterator = iterable.iterator();
+        }
+
+        private T next() {
+            if (!iterator.hasNext()) {
+                iterator = iterable.iterator();
+            }
+            return iterator.next();
+        }
+    }
 
 }
